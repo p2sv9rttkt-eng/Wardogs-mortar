@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wardogs Mortar</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080d1b;color:#f5f7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:700px;margin:auto;padding:20px 16px 40px}.card,.result{background:#151d31;border:1px solid #30405f;border-radius:24px;padding:20px;margin-bottom:16px}
+h1{margin:0 0 5px;font-size:29px}.sub{color:#9aa7c2;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}
+label{display:block;color:#a9b5ce;font-weight:700;margin-bottom:7px}
+input,select{width:100%;height:54px;border:2px solid #30405f;border-radius:16px;background:#0c1222;color:#fff;font-size:18px;padding:0 14px}
+button{height:54px;border:0;border-radius:16px;padding:0 20px;background:#22c55e;color:#06120a;font-weight:900;font-size:16px}
+.secondary{background:#283653;color:#fff}.buttons{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.results{display:grid;grid-template-columns:1fr 1fr;gap:14px}.box{background:#0c1222;border:1px solid #30405f;border-radius:20px;padding:18px}
+.k{color:#9aa7c2;font-weight:700}.v{font-size:40px;font-weight:900;margin-top:5px}.u{color:#9aa7c2}
+.note{color:#aeb9d0;line-height:1.45;margin-top:15px}
+@media(max-width:520px){.grid,.results{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<h1>WARDOGS MORTAR</h1>
+<div class="sub">Kalkulačka zaměření • bez mapy</div>
+<div class="grid">
+<div><label>MAPA</label><select id="map"><option>Bakurani</option><option>Ozeti</option><option>Zestafona</option></select></div>
+<div><label>ZBRAŇ</label><select id="weapon"><option value="l81">L81 Mortar</option><option value="sph2">SPH-2</option></select></div>
+<div id="arcWrap" class="full" style="display:none"><label>SPH-2 TRAJEKTORIE</label><select id="arc"><option value="low">LOW ARC</option><option value="high">HIGH ARC</option></select></div>
+<div><label>MINOMET X</label><input id="mx" type="number" value="50"></div>
+<div><label>MINOMET Y</label><input id="my" type="number" value="50"></div>
+<div><label>CÍL X</label><input id="tx" type="number" value="53"></div>
+<div><label>CÍL Y</label><input id="ty" type="number" value="54"></div>
+</div>
+<div class="buttons">
+<button onclick="calc()">VYPOČÍTAT</button>
+<button class="secondary" onclick="swap()">↔ PROHODIT</button>
+<button class="secondary" onclick="resetAll()">RESET</button>
+</div>
+</div>
+<div class="results">
+<div class="box"><div class="k">VZDÁLENOST</div><div class="v" id="dist">500</div><div class="u">metrů</div></div>
+<div class="box"><div class="k">AZIMUT</div><div class="v" id="az">36.9°</div><div class="u">stupňů</div></div>
+<div class="box"><div class="k">MIL</div><div class="v" id="mil">461</div><div class="u">výškové nastavení</div></div>
+<div class="box"><div class="k">SMĚR</div><div class="v" id="dir">SV</div><div class="u">kompas</div></div>
+</div>
+<div class="card note" id="note">Vyber mapu a zbraň. Výpočet používá zadané souřadnice; mapa slouží jako volba prostředí.</div>
+</main>
+<script>
+const weapon=document.getElementById('weapon');
+weapon.onchange=()=>{document.getElementById('arcWrap').style.display=weapon.value==='sph2'?'block':'none';calc()};
+function calc(){
+ const mx=+document.getElementById('mx').value,my=+document.getElementById('my').value,tx=+document.getElementById('tx').value,ty=+document.getElementById('ty').value;
+ const dx=tx-mx,dy=ty-my,d=Math.hypot(dx,dy)*100;
+ let a=Math.atan2(dx,dy)*180/Math.PI;if(a<0)a+=360;
+ let mil='—',note='';
+ if(weapon.value==='l81'){
+   if(d<132||d>684) note='⚠️ L81: vzdálenost je mimo komunitně uváděný rozsah 132–684 m.';
+   const pts=[[132,850],[500,461],[684,150]];
+   if(d<=132) mil=850; else if(d>=684) mil=150; else {
+    let p=pts[0],q=pts[1]; if(d>500){p=pts[1];q=pts[2]}
+    mil=Math.round(p[1]+(q[1]-p[1])*(d-p[0])/(q[0]-p[0]));
+   }
+ }else{
+   if(d<735||d>2629) note='⚠️ SPH-2: vzdálenost je mimo přibližně uváděný komunitní rozsah 735–2629 m.';
+   note+=' SPH-2 MIL tabulka není v této verzi zahrnuta.';
+ }
+ document.getElementById('dist').textContent=Math.round(d);
+ document.getElementById('az').textContent=a.toFixed(1)+'°';
+ document.getElementById('mil').textContent=mil;
+ document.getElementById('dir').textContent=['S','SV','V','JV','J','JZ','Z','SZ'][Math.round(a/45)%8];
+ document.getElementById('note').textContent=note||'Výpočet hotov — zkontroluj vzdálenost a azimut.';
+}
+function swap(){['mx','tx'].forEach((a,i)=>{let b=i?'mx':'tx',[x,y]=[document.getElementById(a).value,document.getElementById(b).value];document.getElementById(a).value=y;document.getElementById(b).value=x});['my','ty'].forEach((a,i)=>{let b=i?'my':'ty',[x,y]=[document.getElementById(a).value,document.getElementById(b).value];document.getElementById(a).value=y;document.getElementById(b).value=x});calc()}
+function resetAll(){document.getElementById('map').selectedIndex=0;weapon.value='l81';document.getElementById('arcWrap').style.display='none';document.getElementById('mx').value=50;document.getElementById('my').value=50;document.getElementById('tx').value=53;document.getElementById('ty').value=54;calc()}
+calc();
+</script>
+</body>
+</html>
